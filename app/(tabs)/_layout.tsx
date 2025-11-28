@@ -12,18 +12,15 @@ export default function TabLayout() {
     <Tabs
       screenOptions={{
         tabBarActiveTintColor: tintColor,
-        // Optional: Hide the header bar on all tab screens, we'll add custom headers inside each screen
-        // headerShown: false, 
-        // tabBarStyle: {
-        //   // Adjust padding for better look on different platforms
-        //   height: Platform.OS === 'ios' ? 90 : 60, 
-        //   paddingVertical: Platform.OS === 'ios' ? 10 : 0,
-        // },
+        headerShown: false, 
+        tabBarStyle: {
+          height: 90, 
+          paddingVertical: Platform.OS === 'ios' ? 10 : 0,
+        },
       }}
     >
-      {/* 1. HOME / DASHBOARD Tab */}
       <Tabs.Screen
-        name="home" // Corresponds to app/(tabs)/home.tsx
+        name="home"
         options={{
           title: 'Dashboard',
           tabBarIcon: ({ color }) => (
@@ -32,9 +29,9 @@ export default function TabLayout() {
         }}
       />
 
-      {/* 2. TRANSACTIONS Tab */}
+
       <Tabs.Screen
-        name="transactions" // Corresponds to app/(tabs)/transactions.tsx
+        name="transactions"
         options={{
           title: 'Transactions',
           tabBarIcon: ({ color }) => (
@@ -43,9 +40,9 @@ export default function TabLayout() {
         }}
       />
 
-      {/* 3. BUDGETING Tab */}
+
       <Tabs.Screen
-        name="budget" // Corresponds to app/(tabs)/budget.tsx
+        name="budget"
         options={{
           title: 'Budget',
           tabBarIcon: ({ color }) => (
@@ -54,9 +51,9 @@ export default function TabLayout() {
         }}
       />
 
-      {/* 4. ACCOUNTS Tab */}
+
       <Tabs.Screen
-        name="accounts" // Corresponds to app/(tabs)/accounts.tsx
+        name="accounts"
         options={{
           title: 'Accounts',
           tabBarIcon: ({ color }) => (
@@ -65,9 +62,8 @@ export default function TabLayout() {
         }}
       />
 
-      {/* 5. SETTINGS Tab */}
       <Tabs.Screen
-        name="settings" // Corresponds to app/(tabs)/settings.tsx
+        name="settings"
         options={{
           title: 'Settings',
           tabBarIcon: ({ color }) => (
@@ -76,11 +72,9 @@ export default function TabLayout() {
         }}
       />
 
-      {/* IMPORTANT: Add a screen for 'add-transaction'. 
-        We hide it from the tab bar but keep it in the stack so we can navigate to it.
-      */}
+
       <Tabs.Screen
-        name="add-transaction" // Corresponds to app/(tabs)/add-transaction.tsx
+        name="add-transaction"
         options={{
           title: 'Add Transaction',
           headerShown: true, // Show header for this page when it's opened

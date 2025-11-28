@@ -1,252 +1,203 @@
-import React, { useState } from 'react';
-import { 
-  View, 
-  Text, 
-  StyleSheet, 
-  ScrollView, 
-  TextInput, 
-  TouchableOpacity, 
-  Platform,
-  Alert // Use for simple feedback
+import React, { useState, useEffect, useMemo } from 'react';
+import {
+  View, Text, StyleSheet, ScrollView, TextInput, TouchableOpacity, 
+  Platform, Alert, ActivityIndicator, KeyboardAvoidingView
 } from 'react-native';
 import { Picker } from '@react-native-picker/picker';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router'; // 1. Import useLocalSearchParams
+import { addTransactionToFirestore, deleteTransaction, updateTransaction } from '@/src/services/transactionService';
+import { useBehavior } from '@/src/keyboardBehavior';
+import { useAccounts } from '@/src/hooks/useAccounts';
+import { useBudgets } from '@/src/hooks/useBudgets';
+import { DEFAULT_EXPENSE_CATEGORIES, DEFAULT_INCOME_CATEGORIES } from '@/src/constants/categories';
 
-// --- Type Definitions (for clarity) ---
 type TransactionType = 'Expense' | 'Income';
-
-// --- Placeholder Data ---
-const accounts = ['Checking Account', 'Savings Account', 'Credit Card'];
-const expenseCategories = ['Groceries', 'Rent', 'Entertainment', 'Transport'];
-const incomeCategories = ['Salary', 'Freelance', 'Investment'];
 
 export default function AddTransactionScreen() {
   const router = useRouter();
+  const behavior = useBehavior();
+  const params = useLocalSearchParams(); // 2. Get Params (if coming from Edit)
 
-  // --- State Management ---
+  // Determine if we are editing
+  const isEditing = !!params.id;
+  
+  // Data Hooks
+  const { accounts: realAccounts, loading: accountsLoading } = useAccounts();
+  const { budgets, loading: budgetsLoading } = useBudgets();
+
+  // State
   const [type, setType] = useState<TransactionType>('Expense');
   const [amount, setAmount] = useState('');
   const [description, setDescription] = useState('');
-  const [account, setAccount] = useState(accounts[0]);
-  const [category, setCategory] = useState(expenseCategories[0]);
-  const [date, setDate] = useState(new Date().toISOString().substring(0, 10)); // YYYY-MM-DD format
+  const [account, setAccount] = useState(''); 
+  const [category, setCategory] = useState('');
+  const [date, setDate] = useState(new Date().toISOString().substring(0, 10)); 
+  const [loading, setLoading] = useState(false);
 
-  // --- Functions ---
-  
-  const handleSaveTransaction = () => {
-    // 1. Basic validation
-    const parsedAmount = parseFloat(amount);
-    if (isNaN(parsedAmount) || parsedAmount <= 0) {
-      Alert.alert('Error', 'Please enter a valid amount.');
-      return;
+  // 3. EFFECT: Populate form if Editing
+  useEffect(() => {
+    if (isEditing) {
+      setType(params.type as TransactionType);
+      setAmount(params.amount?.toString() || '');
+      setDescription(params.description as string || '');
+      setAccount(params.account as string || '');
+      setCategory(params.category as string || '');
+      setDate(params.date as string || '');
     }
+  }, [params.id]);
 
-    // 2. Here, you would normally call a Firebase function or API to save the data
-    const transactionData = {
-      type,
-      amount: parsedAmount,
-      description,
-      account,
-      category,
-      date,
-      // You'll add user ID and timestamp here later
-    };
+  // Merge Categories (Same as before)
+  const currentCategories = useMemo(() => {
+    if (type === 'Income') return DEFAULT_INCOME_CATEGORIES;
+    const budgetCategoryNames = budgets.map(b => b.category);
+    return Array.from(new Set([...DEFAULT_EXPENSE_CATEGORIES, ...budgetCategoryNames])).sort();
+  }, [type, budgets]);
 
-    console.log('Saving Transaction:', transactionData);
+  // Set default category (Only if NOT editing)
+  useEffect(() => {
+    if (!isEditing && currentCategories.length > 0 && !category) {
+      setCategory(currentCategories[0]);
+    }
+  }, [currentCategories, category, isEditing]);
 
-    // 3. Provide feedback and navigate back
-    Alert.alert('Success', `${type} of $${parsedAmount.toFixed(2)} saved!`);
-    router.back();
+  // Set default account (Only if NOT editing)
+  useEffect(() => {
+    if (!isEditing && realAccounts.length > 0 && account === '') {
+      setAccount(realAccounts[0].name);
+    }
+  }, [realAccounts, account, isEditing]);
+
+  // --- SAVE Handler ---
+  const handleSave = async () => {
+    const parsedAmount = parseFloat(amount);
+    if (isNaN(parsedAmount) || parsedAmount <= 0) return Alert.alert('Error', 'Invalid amount');
+    if (!account) return Alert.alert('Error', 'Select an account');
+    
+    setLoading(true);
+    try {
+      if (isEditing) {
+        // UPDATE Existing
+        await updateTransaction(params.id as string, {
+            type,
+            amount: parsedAmount,
+            category,
+            description,
+            date,
+            // account: account // Account switching blocked in logic for simplicity
+        });
+        Alert.alert('Updated', 'Transaction updated successfully');
+      } else {
+        // CREATE New
+        await addTransactionToFirestore(type, parsedAmount, category, description, account, date);
+        Alert.alert('Success', 'Transaction saved');
+      }
+      router.back();
+    } catch (error) {
+      Alert.alert('Error', 'Operation failed.');
+    } finally {
+      setLoading(false);
+    }
   };
 
-  // Determine which category list to use based on transaction type
-  const currentCategories = type === 'Expense' ? expenseCategories : incomeCategories;
+  // --- DELETE Handler ---
+  const handleDelete = async () => {
+    Alert.alert("Delete Transaction", "This will revert the balance on your account. Are you sure?", [
+        { text: "Cancel", style: "cancel" },
+        { 
+            text: "Delete", 
+            style: "destructive",
+            onPress: async () => {
+                setLoading(true);
+                try {
+                    await deleteTransaction(params.id as string);
+                    router.back();
+                } catch (e) {
+                    Alert.alert("Error", "Could not delete.");
+                    setLoading(false);
+                }
+            }
+        }
+    ])
+  };
 
   return (
-    <ScrollView style={styles.container}>
-      <View style={styles.typeSwitcher}>
+    <KeyboardAvoidingView behavior={behavior} style={{ flex: 1 }}>
+      <ScrollView style={styles.container}>
         
-        {/* Expense Button */}
-        <TouchableOpacity 
-          style={[styles.typeButton, type === 'Expense' && styles.typeButtonActive]}
-          onPress={() => {
-            setType('Expense');
-            setCategory(expenseCategories[0]); // Reset category on type change
-          }}
-        >
-          <Text style={[styles.typeButtonText, type === 'Expense' && styles.typeButtonTextActive]}>Expense</Text>
+        {/* Dynamic Title */}
+        <Text style={styles.screenTitle}>{isEditing ? 'Edit Transaction' : 'New Transaction'}</Text>
+
+        <View style={styles.typeSwitcher}>
+          <TouchableOpacity style={[styles.typeButton, type === 'Expense' && styles.typeButtonActive]} onPress={() => setType('Expense')}>
+            <Text style={[styles.typeButtonText, type === 'Expense' && styles.typeButtonTextActive]}>Expense</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={[styles.typeButton, type === 'Income' && styles.typeButtonActive]} onPress={() => setType('Income')}>
+            <Text style={[styles.typeButtonText, type === 'Income' && styles.typeButtonTextActive]}>Income</Text>
+          </TouchableOpacity>
+        </View>
+
+        <Text style={styles.label}>Amount ($)</Text>
+        <TextInput style={styles.input} placeholder="0.00" keyboardType="numeric" value={amount} onChangeText={setAmount} />
+
+        <Text style={styles.label}>Account</Text>
+        <View style={[styles.pickerContainer, isEditing && { backgroundColor: '#EEE' }]}>
+            {/* Disable Account switching during Edit to prevent complex math issues */}
+            <Picker selectedValue={account} onValueChange={setAccount} enabled={!isEditing && realAccounts.length > 0}>
+                {realAccounts.map(acc => <Picker.Item label={acc.name} value={acc.name} key={acc.id} />)}
+            </Picker>
+        </View>
+        {isEditing && <Text style={styles.helperText}>Account cannot be changed while editing.</Text>}
+
+        <Text style={styles.label}>Category</Text>
+        <View style={styles.pickerContainer}>
+            <Picker selectedValue={category} onValueChange={setCategory}>
+                {currentCategories.map((cat, index) => <Picker.Item label={cat} value={cat} key={index} />)}
+            </Picker>
+        </View>
+
+        <Text style={styles.label}>Date</Text>
+        <TextInput style={styles.input} value={date} onChangeText={setDate} />
+
+        <Text style={styles.label}>Description</Text>
+        <TextInput style={[styles.input, styles.multilineInput]} value={description} onChangeText={setDescription} multiline numberOfLines={3} />
+
+        {/* Save Button */}
+        <TouchableOpacity style={[styles.saveButton, loading && styles.buttonDisabled]} onPress={handleSave} disabled={loading}>
+          {loading ? <ActivityIndicator color="#FFF" /> : <Text style={styles.saveButtonText}>{isEditing ? 'Update Transaction' : 'Save Transaction'}</Text>}
         </TouchableOpacity>
 
-        {/* Income Button */}
-        <TouchableOpacity 
-          style={[styles.typeButton, type === 'Income' && styles.typeButtonActive]}
-          onPress={() => {
-            setType('Income');
-            setCategory(incomeCategories[0]); // Reset category on type change
-          }}
-        >
-          <Text style={[styles.typeButtonText, type === 'Income' && styles.typeButtonTextActive]}>Income</Text>
-        </TouchableOpacity>
+        {/* Delete Button (Only if Editing) */}
+        {isEditing && (
+            <TouchableOpacity style={styles.deleteButton} onPress={handleDelete} disabled={loading}>
+                <Text style={styles.deleteButtonText}>Delete Transaction</Text>
+            </TouchableOpacity>
+        )}
 
-      </View>
-
-      {/* Amount Input */}
-      <Text style={styles.label}>Amount ($)</Text>
-      <TextInput
-        style={styles.input}
-        placeholder="e.g., 50.00"
-        keyboardType="numeric"
-        value={amount}
-        onChangeText={setAmount}
-      />
-
-      {/* Account Picker */}
-      <Text style={styles.label}>Account</Text>
-      <View style={styles.pickerContainer}>
-        <Picker
-          selectedValue={account}
-          onValueChange={(itemValue) => setAccount(itemValue)}
-          mode="dropdown"
-        >
-          {accounts.map((acc, index) => (
-            <Picker.Item label={acc} value={acc} key={index} />
-          ))}
-        </Picker>
-      </View>
-
-      {/* Category Picker */}
-      <Text style={styles.label}>Category</Text>
-      <View style={styles.pickerContainer}>
-        <Picker
-          selectedValue={category}
-          onValueChange={(itemValue) => setCategory(itemValue)}
-          mode="dropdown"
-        >
-          {currentCategories.map((cat, index) => (
-            <Picker.Item label={cat} value={cat} key={index} />
-          ))}
-        </Picker>
-      </View>
-
-      {/* Date Input (Simplified) */}
-      <Text style={styles.label}>Date</Text>
-      <TextInput
-        style={styles.input}
-        placeholder="YYYY-MM-DD (e.g., 2025-11-28)"
-        keyboardType="default"
-        value={date}
-        onChangeText={setDate}
-      />
-
-      {/* Description Input */}
-      <Text style={styles.label}>Description (Optional)</Text>
-      <TextInput
-        style={[styles.input, styles.multilineInput]}
-        placeholder="e.g., Dinner with friends"
-        value={description}
-        onChangeText={setDescription}
-        multiline
-        numberOfLines={3}
-      />
-      
-      {/* Save Button */}
-      <TouchableOpacity 
-        style={styles.saveButton} 
-        onPress={handleSaveTransaction}
-      >
-        <Text style={styles.saveButtonText}>Save Transaction</Text>
-      </TouchableOpacity>
-      
-      {/* Spacer for bottom padding */}
-      <View style={{ height: 50 }} />
-    </ScrollView>
+        <View style={{ height: 50 }} />
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 }
 
-// --- Stylesheet ---
-
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    padding: 20,
-    backgroundColor: '#F7F7F7',
-  },
+  container: { flex: 1, padding: 20, backgroundColor: '#F7F7F7' },
+  screenTitle: { fontSize: 24, fontWeight: 'bold', marginBottom: 20, color: '#111' },
+  // ... (Keep existing styles for inputs, pickers, etc)
+  typeSwitcher: { flexDirection: 'row', marginBottom: 20, backgroundColor: '#E0E0E0', borderRadius: 10, overflow: 'hidden' },
+  typeButton: { flex: 1, paddingVertical: 15, alignItems: 'center' },
+  typeButtonActive: { backgroundColor: '#10B981' },
+  typeButtonText: { fontSize: 16, fontWeight: '600', color: '#333' },
+  typeButtonTextActive: { color: '#FFF' },
+  label: { fontSize: 14, fontWeight: '700', color: '#444', marginTop: 15, marginBottom: 5 },
+  input: { backgroundColor: '#FFF', borderWidth: 1, borderColor: '#E0E0E0', borderRadius: 8, paddingHorizontal: 15, paddingVertical: 12, fontSize: 16, color: '#333' },
+  multilineInput: { height: 100, textAlignVertical: 'top', paddingTop: 12 },
+  pickerContainer: { backgroundColor: '#FFF', borderWidth: 1, borderColor: '#E0E0E0', borderRadius: 8, overflow: Platform.OS === 'ios' ? 'hidden' : 'visible' },
+  helperText: { fontSize: 12, color: '#666', marginTop: 4, fontStyle: 'italic' },
+  saveButton: { backgroundColor: '#2563EB', padding: 18, borderRadius: 10, marginTop: 30, alignItems: 'center', shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.2, shadowRadius: 3, elevation: 5 },
+  saveButtonText: { color: '#FFF', fontSize: 18, fontWeight: '700' },
+  buttonDisabled: { opacity: 0.7, backgroundColor: '#9CA3AF' },
   
-  // Transaction Type Switcher Styles
-  typeSwitcher: {
-    flexDirection: 'row',
-    marginBottom: 20,
-    backgroundColor: '#E0E0E0',
-    borderRadius: 10,
-    overflow: 'hidden',
-  },
-  typeButton: {
-    flex: 1,
-    paddingVertical: 15,
-    alignItems: 'center',
-  },
-  typeButtonActive: {
-    backgroundColor: '#10B981', // Active color
-  },
-  typeButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#333',
-  },
-  typeButtonTextActive: {
-    color: '#FFF',
-  },
-  
-  // Form Element Styles
-  label: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: '#444',
-    marginTop: 15,
-    marginBottom: 5,
-  },
-  input: {
-    backgroundColor: '#FFF',
-    borderWidth: 1,
-    borderColor: '#E0E0E0',
-    borderRadius: 8,
-    paddingHorizontal: 15,
-    paddingVertical: 12,
-    fontSize: 16,
-    color: '#333',
-  },
-  multilineInput: {
-    height: 100,
-    textAlignVertical: 'top', // For Android
-    paddingTop: 12,
-  },
-  
-  // Picker Styles (needs wrapping View for border)
-  pickerContainer: {
-    backgroundColor: '#FFF',
-    borderWidth: 1,
-    borderColor: '#E0E0E0',
-    borderRadius: 8,
-    // Fixes clipping/overlap issues on iOS
-    overflow: Platform.OS === 'ios' ? 'hidden' : 'visible', 
-  },
-
-  // Save Button Styles
-  saveButton: {
-    backgroundColor: '#2563EB',
-    padding: 18,
-    borderRadius: 10,
-    marginTop: 30,
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 3,
-    elevation: 5,
-  },
-  saveButtonText: {
-    color: '#FFF',
-    fontSize: 18,
-    fontWeight: '700',
-  },
+  // New Delete Button Style
+  deleteButton: { backgroundColor: '#FEE2E2', padding: 18, borderRadius: 10, marginTop: 15, alignItems: 'center' },
+  deleteButtonText: { color: '#EF4444', fontSize: 18, fontWeight: '700' },
 });
