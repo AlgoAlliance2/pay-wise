@@ -8,6 +8,7 @@ import { createUserWithEmailAndPassword } from "firebase/auth";
 import { auth } from "@/src/firebase/firebaseConfig";
 import { useRouter } from "expo-router";
 import { getAuthErrorMessage } from "@/src/utils/authErrors";
+import { useBehavior } from "./login";
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -41,9 +42,11 @@ export default function RegisterPage() {
     }
   };
 
+  const behavior = useBehavior();
+
   return (
   <KeyboardAvoidingView
-    behavior={Platform.OS === "ios" ? "padding" : "height"}
+    behavior={behavior}
     style={{ flex: 1 }}
   >
     <ScrollView contentContainerStyle={styles.container}>

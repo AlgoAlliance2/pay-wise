@@ -1,12 +1,36 @@
 // app/(auth)/login.tsx
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
-  Text, TextInput, TouchableOpacity, StyleSheet, ActivityIndicator, KeyboardAvoidingView, Platform, ScrollView
+  Text, TextInput, TouchableOpacity, StyleSheet, ActivityIndicator, KeyboardAvoidingView, Platform, 
+  ScrollView, KeyboardAvoidingViewProps, Keyboard
 } from "react-native";
 import { signInWithEmailAndPassword, sendPasswordResetEmail } from "firebase/auth";
 import { auth } from "@/src/firebase/firebaseConfig";
 import { useRouter } from "expo-router";
 import { getAuthErrorMessage } from "@/src/utils/authErrors";
+
+
+export function useBehavior() {
+  const defaultValue: KeyboardAvoidingViewProps['behavior'] = Platform.OS === 'ios' ? 'padding' : 'height'
+
+  const [behaviour, setBehaviour] = useState<KeyboardAvoidingViewProps['behavior']>(defaultValue)
+
+  useEffect(() => {
+    const showListener = Keyboard.addListener('keyboardDidShow', () => {
+      setBehaviour(defaultValue)
+    })
+    const hideListener = Keyboard.addListener('keyboardDidHide', () => {
+      setBehaviour(undefined)
+    })
+
+    return () => {
+      showListener.remove()
+      hideListener.remove()
+    }
+  }, [])
+
+  return behaviour
+}
 
 export default function LoginPage() {
   const router = useRouter();
@@ -48,9 +72,11 @@ export default function LoginPage() {
     }
   };
 
+  const behavior = useBehavior();
+
   return (
   <KeyboardAvoidingView
-    behavior={Platform.OS === "ios" ? "padding" : "height"}
+    behavior={behavior}
     style={{ flex: 1 }}
   >
     <ScrollView contentContainerStyle={styles.container}>

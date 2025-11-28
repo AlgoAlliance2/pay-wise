@@ -1,5 +1,5 @@
 // app/index.tsx
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { View, ActivityIndicator } from "react-native";
 import { auth } from "../src/firebase/firebaseConfig";
 import { useRouter } from "expo-router";
