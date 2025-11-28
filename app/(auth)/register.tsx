@@ -8,7 +8,7 @@ import { createUserWithEmailAndPassword } from "firebase/auth";
 import { auth } from "@/src/firebase/firebaseConfig";
 import { useRouter } from "expo-router";
 import { getAuthErrorMessage } from "@/src/utils/authErrors";
-import { useBehavior } from "./login";
+import { useBehavior } from "@/src/keyboardBehavior";
 
 export default function RegisterPage() {
   const router = useRouter();
