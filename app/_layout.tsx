@@ -2,9 +2,11 @@ import { Slot, useRouter } from "expo-router";
 import { onAuthStateChanged } from "firebase/auth";
 import { auth } from "../src/firebase/firebaseConfig";
 import { useEffect } from "react";
+import { ThemeProvider } from "@/src/context/ThemeContext"; 
 
 export default function RootLayout() {
   const router = useRouter();
+
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, (user) => {
       if (user) router.replace("/(tabs)/home");
@@ -14,5 +16,9 @@ export default function RootLayout() {
     return unsub;
   }, []);
 
-  return <Slot />;
+  return (
+    <ThemeProvider>
+      <Slot />
+    </ThemeProvider>
+  );
 }

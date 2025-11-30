@@ -1,21 +1,32 @@
-import React from 'react';
-import { Tabs } from 'expo-router';
+import { useTheme } from '@/src/context/ThemeContext';
 import { Ionicons } from '@expo/vector-icons';
+import { Tabs } from 'expo-router';
+import React from 'react';
 import { Platform } from 'react-native';
 
 const TAB_ICON_SIZE = 24;
 
 export default function TabLayout() {
-  const tintColor = '#10B981'; // A pleasant green color for active tabs
+  const { colors } = useTheme();
+
+  const activeColor = '#10B981'; 
 
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: tintColor,
-        headerShown: false, 
+        // Set colors based on the theme
+        tabBarActiveTintColor: activeColor,
+        tabBarInactiveTintColor: colors.textSecondary,
+        headerShown: false,
+        
         tabBarStyle: {
-          height: 90, 
-          paddingVertical: Platform.OS === 'ios' ? 10 : 0,
+          backgroundColor: colors.card,
+          borderTopColor: colors.border,
+          borderBottomColor: colors.border,
+          
+          height: Platform.OS === 'ios' ? 90 : 90,
+          paddingVertical: Platform.OS === 'ios' ? 10 : 10,
+          paddingBottom: Platform.OS === 'ios' ? 25 : 10,
         },
       }}
     >
@@ -77,8 +88,12 @@ export default function TabLayout() {
         name="add-transaction"
         options={{
           title: 'Add Transaction',
-          headerShown: true, // Show header for this page when it's opened
-          href: null, // Hide this screen from the tab bar completely
+          headerShown: true, 
+          headerStyle: {
+            backgroundColor: colors.background,
+          },
+          headerTintColor: colors.text,
+          href: null, 
         }}
       />
     </Tabs>

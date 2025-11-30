@@ -1,20 +1,19 @@
-import React, { useState } from 'react';
-import { 
-  View, 
-  Text, 
-  StyleSheet, 
-  ScrollView, 
-  TouchableOpacity, 
-  Switch, 
-  Alert, 
-  Image 
-} from 'react-native';
+import { useTheme } from '@/src/context/ThemeContext';
+import { auth } from '@/src/firebase/firebaseConfig';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { signOut } from 'firebase/auth';
-import { auth } from '@/src/firebase/firebaseConfig';
+import React from 'react';
+import {
+  Alert,
+  ScrollView,
+  StyleSheet,
+  Switch,
+  Text,
+  TouchableOpacity,
+  View
+} from 'react-native';
 
-// --- Reusable Setting Item Component ---
 type SettingItemProps = {
   icon: keyof typeof Ionicons.glyphMap;
   color: string;
@@ -24,20 +23,22 @@ type SettingItemProps = {
   onToggle?: (val: boolean) => void;
   onPress?: () => void;
   isDestructive?: boolean;
+  textColor?: string;
 };
 
-const SettingItem = ({ 
-  icon, 
-  color, 
-  label, 
-  type = 'link', 
-  value, 
-  onToggle, 
+const SettingItem = ({
+  icon,
+  color,
+  label,
+  type = 'link',
+  value,
+  onToggle,
   onPress,
-  isDestructive = false
+  isDestructive = false,
+  textColor = '#111'
 }: SettingItemProps) => (
-  <TouchableOpacity 
-    style={styles.itemContainer} 
+  <TouchableOpacity
+    style={styles.itemContainer}
     onPress={onPress}
     disabled={type === 'toggle'}
     activeOpacity={0.7}
@@ -46,15 +47,19 @@ const SettingItem = ({
       <View style={[styles.iconContainer, { backgroundColor: color }]}>
         <Ionicons name={icon} size={20} color="#FFF" />
       </View>
-      <Text style={[styles.itemLabel, isDestructive && styles.destructiveLabel]}>
+      <Text style={[
+        styles.itemLabel,
+        isDestructive && styles.destructiveLabel,
+        !isDestructive && { color: textColor }
+      ]}>
         {label}
       </Text>
     </View>
 
     <View style={styles.itemRight}>
       {type === 'toggle' && (
-        <Switch 
-          value={value} 
+        <Switch
+          value={value}
           onValueChange={onToggle}
           trackColor={{ false: '#E5E7EB', true: '#10B981' }}
           thumbColor="#FFF"
@@ -67,31 +72,27 @@ const SettingItem = ({
   </TouchableOpacity>
 );
 
-// --- Main Settings Screen ---
-
 export default function SettingsScreen() {
   const router = useRouter();
   const user = auth.currentUser;
 
-  // --- Local State for UI Toggles (Mock Preferences) ---
-  const [notifications, setNotifications] = useState(true);
-  const [darkMode, setDarkMode] = useState(false);
 
-  // --- Actions ---
+  const { colors, isDarkMode, toggleTheme } = useTheme();
+
   const handleLogout = async () => {
     Alert.alert(
       "Log Out",
       "Are you sure you want to log out?",
       [
         { text: "Cancel", style: "cancel" },
-        { 
-          text: "Log Out", 
+        {
+          text: "Log Out",
           style: "destructive",
           onPress: async () => {
             try {
               await signOut(auth);
-              // Use replace to prevent going back to settings
-              router.replace('/(auth)/login'); 
+
+              router.replace('/(auth)/login');
             } catch (error) {
               Alert.alert("Error", "Failed to log out. Please try again.");
             }
@@ -102,81 +103,69 @@ export default function SettingsScreen() {
   };
 
   return (
-    <ScrollView style={styles.container}>
-      
-      {/* Header Title */}
-      <Text style={styles.headerTitle}>Settings</Text>
+    <ScrollView style={[styles.container, { backgroundColor: colors.background }]}>
+
+      <Text style={[styles.headerTitle, { color: colors.text }]}>Settings</Text>
 
       {/* Profile Section */}
-      <View style={styles.profileSection}>
+      <View style={[styles.profileSection, { backgroundColor: colors.card, shadowColor: isDarkMode ? '#000' : '#CCC' }]}>
         <View style={styles.avatar}>
-          <Text style={styles.avatarText}>
-            {user?.email?.charAt(0).toUpperCase() || "U"}
-          </Text>
+          <Text style={styles.avatarText}>{user?.email?.charAt(0).toUpperCase()}</Text>
         </View>
         <View style={styles.profileInfo}>
-          <Text style={styles.profileName}>My Account</Text>
-          <Text style={styles.profileEmail}>{user?.email || "guest@example.com"}</Text>
+          <Text style={[styles.profileName, { color: colors.text }]}>My Account</Text>
+          <Text style={[styles.profileEmail, { color: colors.textSecondary }]}>{user?.email}</Text>
         </View>
         <TouchableOpacity style={styles.editButton}>
-            <Text style={styles.editButtonText}>Edit</Text>
+          <Text style={styles.editButtonText}>Edit</Text>
         </TouchableOpacity>
       </View>
 
-      {/* Group 1: App Preferences */}
-      <Text style={styles.sectionHeader}>Preferences</Text>
-      <View style={styles.sectionContainer}>
-        <SettingItem 
-          icon="notifications" 
-          color="#3B82F6" 
-          label="Push Notifications" 
-          type="toggle"
-          value={notifications}
-          onToggle={setNotifications}
+      <Text style={[styles.sectionHeader, { color: colors.textSecondary }]}>Preferences</Text>
+
+      <View style={[styles.sectionContainer, { backgroundColor: colors.card }]}>
+        <View style={styles.itemContainer}>
+          <View style={styles.itemLeft}>
+            <View style={[styles.iconContainer, { backgroundColor: '#6366F1' }]}>
+              <Ionicons name="moon" size={20} color="#FFF" />
+            </View>
+            <Text style={[styles.itemLabel, { color: colors.text }]}>Dark Mode</Text>
+          </View>
+          <Switch
+            value={isDarkMode}
+            onValueChange={toggleTheme}
+            trackColor={{ false: '#E5E7EB', true: '#10B981' }}
+          />
+        </View>
+
+      </View>
+
+      <Text style={[styles.sectionHeader, { color: colors.textSecondary }]}>Support</Text>
+      <View style={[styles.sectionContainer, { backgroundColor: colors.card }]}>
+        <SettingItem
+          icon="help-buoy"
+          color="#10B981"
+          label="Help Center"
+          textColor={colors.text}
+          onPress={() => { }}
         />
-        <View style={styles.separator} />
-        <SettingItem 
-          icon="moon" 
-          color="#6366F1" 
-          label="Dark Mode" 
-          type="toggle"
-          value={darkMode}
-          onToggle={setDarkMode}
-        />
-        <View style={styles.separator} />
-        <SettingItem 
-          icon="language" 
-          color="#F59E0B" 
-          label="Language & Currency" 
-          onPress={() => Alert.alert("Coming Soon", "Multi-currency support is planned!")}
+        <View style={[styles.separator, { backgroundColor: colors.background }]} />
+        <SettingItem
+          icon="lock-closed"
+          color="#8B5CF6"
+          label="Privacy Policy"
+          textColor={colors.text}
+          onPress={() => { }}
         />
       </View>
 
-      {/* Group 2: Support */}
-      <Text style={styles.sectionHeader}>Support</Text>
-      <View style={styles.sectionContainer}>
-        <SettingItem 
-          icon="help-buoy" 
-          color="#10B981" 
-          label="Help Center" 
-          onPress={() => {}}
-        />
-        <View style={styles.separator} />
-        <SettingItem 
-          icon="lock-closed" 
-          color="#8B5CF6" 
-          label="Privacy Policy" 
-          onPress={() => {}}
-        />
-      </View>
 
-      {/* Group 3: Danger Zone */}
-      <Text style={styles.sectionHeader}>Account</Text>
-      <View style={styles.sectionContainer}>
-        <SettingItem 
-          icon="log-out" 
-          color="#EF4444" 
-          label="Log Out" 
+      <Text style={[styles.sectionHeader, { color: colors.textSecondary }]}>Account</Text>
+      <View style={[styles.sectionContainer, { backgroundColor: colors.card }]}>
+        <SettingItem
+          icon="log-out"
+          color="#EF4444"
+          label="Log Out"
           type="button"
           isDestructive
           onPress={handleLogout}
@@ -189,26 +178,23 @@ export default function SettingsScreen() {
   );
 }
 
-// --- Stylesheet ---
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F3F4F6', // Light gray background
     paddingHorizontal: 20,
     paddingTop: 60,
   },
   headerTitle: {
     fontSize: 30,
     fontWeight: '800',
-    color: '#111',
     marginBottom: 20,
   },
-  
+
   // Profile Section
   profileSection: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FFF',
     padding: 16,
     borderRadius: 16,
     marginBottom: 25,
@@ -280,9 +266,9 @@ const styles = StyleSheet.create({
   separator: {
     height: 1,
     backgroundColor: '#F3F4F6',
-    marginLeft: 50, // Indent separator to match text alignment
+    marginLeft: 50,
   },
-  
+
   // Setting Item
   itemContainer: {
     flexDirection: 'row',
