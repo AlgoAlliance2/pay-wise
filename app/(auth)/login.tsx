@@ -1,14 +1,16 @@
 // app/(auth)/login.tsx
+import { auth } from "@/src/firebase/firebaseConfig";
+import { useBehavior } from "@/src/keyboardBehavior";
+import { getAuthErrorMessage } from "@/src/utils/authErrors";
+import { useRouter } from "expo-router";
+import { sendPasswordResetEmail, signInWithEmailAndPassword } from "firebase/auth";
 import React, { useState } from "react";
 import {
-  Text, TextInput, TouchableOpacity, StyleSheet, ActivityIndicator, KeyboardAvoidingView, Platform, 
-  ScrollView
+  ActivityIndicator, KeyboardAvoidingView,
+  ScrollView,
+  StyleSheet,
+  Text, TextInput, TouchableOpacity
 } from "react-native";
-import { signInWithEmailAndPassword, sendPasswordResetEmail } from "firebase/auth";
-import { auth } from "@/src/firebase/firebaseConfig";
-import { useRouter } from "expo-router";
-import { getAuthErrorMessage } from "@/src/utils/authErrors";
-import { useBehavior } from "@/src/keyboardBehavior";
 
 export default function LoginPage() {
   const router = useRouter();

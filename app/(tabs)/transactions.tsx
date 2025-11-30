@@ -1,35 +1,25 @@
 import React, { useState } from 'react';
-import { 
-  View, 
-  Text, 
-  StyleSheet, 
-  FlatList, 
-  TouchableOpacity, 
+import {
+  View,
+  Text,
+  StyleSheet,
+  FlatList,
+  TouchableOpacity,
   TextInput,
   ActivityIndicator
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useTransactions } from '@/src/hooks/useTransactions';
-
-// --- Types ---
-type Transaction = {
-  id: string;
-  type: 'Income' | 'Expense';
-  amount: number;
-  category: string;
-  date: string;
-  description: string;
-  account: string; // Ensure this exists in your type
-};
+import { useTheme } from '@/src/context/ThemeContext';
 
 export default function TransactionsScreen() {
   const router = useRouter();
   const { transactions, loading } = useTransactions();
+  const { colors } = useTheme();
   const [filter, setFilter] = useState<'All' | 'Income' | 'Expense'>('All');
   const [searchQuery, setSearchQuery] = useState('');
 
-  // --- Helper: Get Icon based on Category ---
   const getCategoryIcon = (category: string) => {
     switch (category) {
       case 'Groceries': return 'cart-outline';
@@ -51,19 +41,19 @@ export default function TransactionsScreen() {
   });
 
   return (
-    <View style={styles.container}>
-      
-      {/* Header Area */}
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>Transactions</Text>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
+
+      <View style={[styles.header, { backgroundColor: colors.background }]}>
+        <Text style={[styles.headerTitle, { color: colors.text }]}>Transactions</Text>
       </View>
 
       {/* Search Bar */}
-      <View style={styles.searchContainer}>
-        <Ionicons name="search" size={20} color="#999" style={{ marginRight: 8 }} />
-        <TextInput 
-          placeholder="Search transactions..." 
-          style={styles.searchInput}
+      <View style={[styles.searchContainer, { backgroundColor: colors.card, borderColor: colors.border }]}>
+        <Ionicons name="search" size={20} color={colors.textSecondary} style={{ marginRight: 8 }} />
+        <TextInput
+          placeholder="Search transactions..."
+          placeholderTextColor={colors.textSecondary}
+          style={[styles.searchInput, { color: colors.text }]}
           value={searchQuery}
           onChangeText={setSearchQuery}
         />
@@ -71,17 +61,26 @@ export default function TransactionsScreen() {
 
       {/* Filter Tabs */}
       <View style={styles.filterContainer}>
-        {['All', 'Income', 'Expense'].map((f) => (
-          <TouchableOpacity 
-            key={f} 
-            style={[styles.filterButton, filter === f && styles.filterButtonActive]}
-            onPress={() => setFilter(f as any)}
-          >
-            <Text style={[styles.filterText, filter === f && styles.filterTextActive]}>
-              {f}
-            </Text>
-          </TouchableOpacity>
-        ))}
+        {['All', 'Income', 'Expense'].map((f) => {
+          const isActive = filter === f;
+          return (
+            <TouchableOpacity
+              key={f}
+              style={[
+                styles.filterButton,
+                { backgroundColor: isActive ? colors.text : colors.card }
+              ]}
+              onPress={() => setFilter(f as any)}
+            >
+              <Text style={[
+                styles.filterText,
+                { color: isActive ? colors.background : colors.text }
+              ]}>
+                {f}
+              </Text>
+            </TouchableOpacity>
+          );
+        })}
       </View>
 
       {/* Handle Loading State */}
@@ -94,13 +93,12 @@ export default function TransactionsScreen() {
           data={filteredData}
           keyExtractor={(item) => item.id}
           contentContainerStyle={styles.listContent}
-          // --- UPDATED RENDER ITEM ---
           renderItem={({ item }) => (
-            <TouchableOpacity 
+            <TouchableOpacity
               activeOpacity={0.7}
               onPress={() => router.push({
                 pathname: '/(tabs)/add-transaction',
-                params: { 
+                params: {
                   id: item.id,
                   type: item.type,
                   amount: item.amount,
@@ -111,17 +109,17 @@ export default function TransactionsScreen() {
                 }
               })}
             >
-              <View style={styles.transactionCard}>
+              <View style={[styles.transactionCard, { backgroundColor: colors.card }]}>
                 <View style={[styles.iconContainer, { backgroundColor: item.type === 'Income' ? '#E6F4EA' : '#FEE2E2' }]}>
-                  <Ionicons 
-                    name={getCategoryIcon(item.category) as any} 
-                    size={24} 
-                    color={item.type === 'Income' ? '#10B981' : '#EF4444'} 
+                  <Ionicons
+                    name={getCategoryIcon(item.category) as any}
+                    size={24}
+                    color={item.type === 'Income' ? '#10B981' : '#EF4444'}
                   />
                 </View>
                 <View style={styles.detailsContainer}>
-                  <Text style={styles.description}>{item.description || item.category}</Text>
-                  <Text style={styles.categoryDate}>{item.category} • {item.date}</Text>
+                  <Text style={[styles.description, { color: colors.text }]}>{item.description || item.category}</Text>
+                  <Text style={[styles.categoryDate, { color: colors.textSecondary }]}>{item.category} • {item.date}</Text>
                 </View>
                 <Text style={[styles.amount, { color: item.type === 'Income' ? '#10B981' : '#EF4444' }]}>
                   {item.type === 'Income' ? '+' : '-'} ${item.amount.toFixed(2)}
@@ -129,10 +127,9 @@ export default function TransactionsScreen() {
               </View>
             </TouchableOpacity>
           )}
-          // ---------------------------
           ListEmptyComponent={
             <View style={styles.emptyState}>
-              <Text style={{ color: '#888' }}>No transactions found.</Text>
+              <Text style={{ color: colors.textSecondary }}>No transactions found.</Text>
             </View>
           }
         />
@@ -145,36 +142,34 @@ export default function TransactionsScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F9FAFB',
   },
   header: {
     paddingTop: 50,
     paddingHorizontal: 20,
     paddingBottom: 15,
-    backgroundColor: '#fff',
   },
   headerTitle: {
     fontSize: 28,
     fontWeight: '800',
-    color: '#111',
   },
+
+  // Search Styles
   searchContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FFF',
     marginHorizontal: 20,
     marginTop: 10,
     paddingHorizontal: 15,
     paddingVertical: 12,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#E5E7EB',
   },
   searchInput: {
     flex: 1,
     fontSize: 16,
-    color: '#333',
   },
+
+  // Filter Styles
   filterContainer: {
     flexDirection: 'row',
     paddingHorizontal: 20,
@@ -185,20 +180,14 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     paddingHorizontal: 20,
     borderRadius: 20,
-    backgroundColor: '#E5E7EB',
     marginRight: 10,
-  },
-  filterButtonActive: {
-    backgroundColor: '#111',
   },
   filterText: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#4B5563',
   },
-  filterTextActive: {
-    color: '#FFF',
-  },
+
+  // List Styles
   listContent: {
     paddingHorizontal: 20,
     paddingBottom: 20,
@@ -206,7 +195,6 @@ const styles = StyleSheet.create({
   transactionCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FFF',
     padding: 16,
     borderRadius: 16,
     marginBottom: 12,
@@ -230,19 +218,17 @@ const styles = StyleSheet.create({
   description: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#1F2937',
     marginBottom: 4,
   },
   categoryDate: {
     fontSize: 13,
-    color: '#6B7280',
   },
   amount: {
     fontSize: 16,
     fontWeight: '700',
   },
   emptyState: {
-    alignItems: 'center', 
+    alignItems: 'center',
     marginTop: 50
   }
 });
