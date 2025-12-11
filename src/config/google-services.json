@@ -1,0 +1,47 @@
+{
+  "project_info": {
+    "project_number": "845420920754",
+    "project_id": "pay-wise-be85c",
+    "storage_bucket": "pay-wise-be85c.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:845420920754:android:d94c674e56eeaeba46eeab",
+        "android_client_info": {
+          "package_name": "com.univer.cmo.paywise"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "845420920754-ruhdgc082mr6ehd7knlkk71jekubi7n2.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.univer.cmo.paywise",
+            "certificate_hash": "d2915dcb88000d7e5d3c2e3b7a6f5e8c111d3d0e"
+          }
+        },
+        {
+          "client_id": "845420920754-fm8j6nnl98u12mjm0fprl0n2mmcas872.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCkWWIIkXbG5DLiGx8GQEJ_T1F--Wu7m7Y"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "845420920754-fm8j6nnl98u12mjm0fprl0n2mmcas872.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

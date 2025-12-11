@@ -22,8 +22,6 @@
         "backgroundImage": "./assets/images/android-icon-background.png",
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
-      "edgeToEdgeEnabled": true,
-      "predictiveBackGestureEnabled": false,
       "package": "com.univer.cmo.paywise"
     },
     "web": {
@@ -33,15 +31,19 @@
     "plugins": [
       "expo-router",
       [
+        "@react-native-google-signin/google-signin",
+        {
+          "iosUrlScheme": "com.googleusercontent.apps.845420920754-4ci81308nj7fuv320n61j3egd3r507ja"
+        }
+      ],
+      [
         "expo-splash-screen",
         {
           "image": "./assets/images/splash-icon.png",
           "imageWidth": 200,
           "resizeMode": "contain",
           "backgroundColor": "#ffffff",
-          "dark": {
-            "backgroundColor": "#000000"
-          }
+          "dark": { "backgroundColor": "#000000" }
         }
       ],
       "expo-web-browser"
@@ -54,7 +56,8 @@
       "router": {},
       "eas": {
         "projectId": "66e7f99c-b7d6-440d-b1ea-641dba62c7de"
-      }
+      },
+      "owner": "voiasvlad"
     }
   }
 }
